@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
@@ -55,7 +54,7 @@ func yasmSingle(instr string, lineno, commentPos int, inDefine bool) (string, []
 
 	instrFields := strings.Split(instr, "/*")
 	content := []byte("[bits 64]\n" + instrFields[0])
-	tmpfile, err := ioutil.TempFile("", "asm2plan9s")
+	tmpfile, err := os.CreateTemp("", "asm2plan9s")
 	if err != nil {
 		return "", nil, err
 	}
@@ -69,7 +68,9 @@ func yasmSingle(instr string, lineno, commentPos int, inDefine bool) (string, []
 
 	asmFile := tmpfile.Name() + ".asm"
 	objFile := tmpfile.Name() + ".obj"
-	os.Rename(tmpfile.Name(), asmFile)
+	if err := os.Rename(tmpfile.Name(), asmFile); err != nil {
+		return "", nil, err
+	}
 
 	defer os.Remove(asmFile) // clean up
 	defer os.Remove(objFile) // clean up
@@ -95,7 +96,7 @@ func yasmSingle(instr string, lineno, commentPos int, inDefine bool) (string, []
 }
 
 func toPlan9sYasm(objFile, instr string, commentPos int, inDefine bool) (string, []byte, error) {
-	opcodes, err := ioutil.ReadFile(objFile)
+	opcodes, err := os.ReadFile(objFile)
 	if err != nil {
 		return "", nil, err
 	}
@@ -144,9 +145,6 @@ func toPlan9s(opcodes []byte, instr string, commentPos int, inDefine bool) (stri
 			sline += "; "
 		}
 		sline += fmt.Sprintf("BYTE $0x%02x", opcodes[0])
-
-		i++
-		opcodes = opcodes[1:]
 	}
 
 	if inDefine {

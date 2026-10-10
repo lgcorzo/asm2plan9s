@@ -19,7 +19,6 @@ package main
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -54,7 +53,7 @@ func asSingle(instr string, lineno, commentPos int, inDefine bool) (string, []by
 
 	instrFields := strings.Split(instr, "/*")
 	content := []byte(instrFields[0] + "\n")
-	tmpfile, err := ioutil.TempFile("", "asm2plan9s")
+	tmpfile, err := os.CreateTemp("", "asm2plan9s")
 	if err != nil {
 		return "", nil, err
 	}
@@ -69,7 +68,9 @@ func asSingle(instr string, lineno, commentPos int, inDefine bool) (string, []by
 	asmFile := tmpfile.Name() + ".asm"
 	lisFile := tmpfile.Name() + ".lis"
 	objFile := tmpfile.Name() + ".obj"
-	os.Rename(tmpfile.Name(), asmFile)
+	if err := os.Rename(tmpfile.Name(), asmFile); err != nil {
+		return "", nil, err
+	}
 
 	defer os.Remove(asmFile) // clean up
 	defer os.Remove(lisFile) // clean up
