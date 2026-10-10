@@ -18,8 +18,8 @@ package main
 
 import (
 	"bytes"
-	"io/ioutil"
 	"os"
+	"os/exec"
 	"testing"
 )
 
@@ -86,11 +86,18 @@ func TestCompactMultipleInstructions(t *testing.T) {
 	ins11 := "    MOVQ BX, CX"
 	ins12 := "                                 // VPADDQ  XMM4,XMM5,XMM6"
 	ins13 := "                                 // VPADDQ  XMM5,XMM6,XMM0"
-	out0 := "    QUAD $0xd4e9c5c0d471c1c4; QUAD $0xd4d1c5e6d4d1c5cb; QUAD $0xd4d1c5e6d4d1c5e6; QUAD $0x71c1c4e6d4d1c5e6; WORD $0xc0d4"
+	var out0, out2, out4 string
+	if _, err := exec.LookPath("yasm"); err == nil {
+		out0 = "    QUAD $0xd4e9c5c0d471c1c4; QUAD $0xd4d1c5e6d4d1c5cb; QUAD $0xd4d1c5e6d4d1c5e6; QUAD $0x71c1c4e6d4d1c5e6; WORD $0xc0d4"
+		out2 = "    QUAD $0xe6d4d1c5cbd4e9c5"
+		out4 = "    LONG $0xe8d4c9c5"
+	} else {
+		out0 = "    QUAD $0xd4e9c5c0d471c1c4; QUAD $0xd4d1c5e6d4d1c5cb; QUAD $0xd4d1c5e6d4d1c5e6; LONG $0xd4d1c5e6; BYTE $0xe6"
+		out2 = "    QUAD $0xd4e9c5c0d471c1c4; BYTE $0xcb"
+		out4 = "    QUAD $0xe8d4c9c5e6d4d1c5"
+	}
 	out1 := "    MOVQ AX, BX"
-	out2 := "    QUAD $0xe6d4d1c5cbd4e9c5"
 	out3 := "    MOVQ BX, CX"
-	out4 := "    LONG $0xe8d4c9c5"
 	out := make([]string, 5)
 	out[0], out[1], out[2], out[3], out[4] = out0, out1, out2, out3, out4
 
@@ -124,10 +131,10 @@ func TestToPlan9sGasSingleLineEVEX(t *testing.T) {
    2      D4C0
    3              `
 
-	out := make([][]byte, 1, 1)
+	out := make([][]byte, 1)
 	out[0] = []byte{98, 209, 245, 72, 212, 192}
 
-	tmpfile, err := ioutil.TempFile("", "test")
+	tmpfile, err := os.CreateTemp("", "test")
 	if err != nil {
 		return
 	}
@@ -157,12 +164,12 @@ func TestToPlan9sGasMultiLinesVEX(t *testing.T) {
    4      D2
    5          `
 
-	out := make([][]byte, 3, 3)
+	out := make([][]byte, 3)
 	out[0] = []byte{196, 193, 113, 212, 192}
 	out[1] = []byte{196, 193, 105, 212, 201}
 	out[2] = []byte{196, 193, 97, 212, 210}
 
-	tmpfile, err := ioutil.TempFile("", "test")
+	tmpfile, err := os.CreateTemp("", "test")
 	if err != nil {
 		return
 	}

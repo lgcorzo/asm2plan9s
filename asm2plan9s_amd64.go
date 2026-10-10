@@ -20,7 +20,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"regexp"
@@ -65,11 +64,11 @@ func as(instructions []Instruction) error {
 
 func gas(instructions []Instruction) error {
 
-	tmpfile, err := ioutil.TempFile("", "asm2plan9s")
+	tmpfile, err := os.CreateTemp("", "asm2plan9s")
 	if err != nil {
 		return err
 	}
-	if _, err := tmpfile.Write([]byte(fmt.Sprintf(".intel_syntax noprefix\n"))); err != nil {
+	if _, err := tmpfile.Write([]byte(".intel_syntax noprefix\n")); err != nil {
 		return err
 	}
 
@@ -92,7 +91,9 @@ func gas(instructions []Instruction) error {
 	asmFile := tmpfile.Name() + ".asm"
 	lisFile := tmpfile.Name() + ".lis"
 	objFile := tmpfile.Name() + ".obj"
-	os.Rename(tmpfile.Name(), asmFile)
+	if err := os.Rename(tmpfile.Name(), asmFile); err != nil {
+		return err
+	}
 
 	defer os.Remove(asmFile) // clean up
 	defer os.Remove(lisFile) // clean up
